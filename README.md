@@ -8,13 +8,15 @@ Contributor: Vlad/Goodnice - Tel'Abim
 
 ## Latest features
 
-Implementing condition to count enemies in range. The purpose is to have a single rotation for both single target and multi target. The condition will use spells available for maximum dps.
-
-/idps for warrior is the first rotation to handle enemy count.
-
-/idpsfocus for warrior has been added to run the single target rotation regardless enemy count to focus on a priority target.
-
-/icleave for warrior is unchanged but will be removed soon.
+- Boss DPS cooldown management (Death Wish, Blood Fury) with TTK-based timing and save thresholds
+- Boss trinket auto-use (Badge of the Swarmguard, Slayer's Crest, Kiss of the Spider) with TTK windows
+- Boss consumable auto-use (Juju Flurry, Mighty Rage Potion) when off cooldown
+- Zone-specific consumable (Elixir of Poison Resistance in Naxxramas Arachnid Quarter)
+- Cooldown blacklist for specific bosses (Feugen, Stalagg, Noth, Blue Owl, Red Owl)
+- Dynamic rage income tracking using RLS (Recursive Least Squares) with Nampower UNIT_RAGE_GUID and OnUpdate fallback
+- Per-rotation query caching for all core condition functions
+- Heroic Strike blocked during execute phase
+- Toggle settings for Overpower, Berserker Rage, Rend (default off)
 
 ## Mods Dependencies
 
@@ -122,8 +124,11 @@ Example: /iwin judgement wisdom
     /iwin dtdefensive <toggle>        Use Defensive stance with Defensive Tactics.
     /iwin dtberserker <toggle>        Use Berserker stance with Defensive Tactics.
     /iwin ragebuffer <number>         Save 100% required rage for spells X seconds before the spells are used.
-    /iwin ragegain <number>           Anticipate rage gain per second. Required rage will be saved gradually before the spells are used.
+    /iwin ragegain <number>           Initial rage per second estimate (seed for dynamic RLS tracking).
     /iwin jousting <toggle>           Use Hamstring to joust with target in solo DPS.
+    /iwin overpower <toggle>          Use Overpower.
+    /iwin berserkerrage <toggle>      Use Berserker Rage for rage generation.
+    /iwin rend <toggle>               Use Rend.
     /iwin thunderclap <toggle>        Use Thunder Clap.
 
 partySize possible values: raid, group, solo, targetincombat, off.

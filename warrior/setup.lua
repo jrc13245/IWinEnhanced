@@ -78,8 +78,8 @@ function SlashCmdList.IWINWARRIOR(command)
 				return
 		end
 	elseif arguments[1] == "ragegain" then
-		if tonumber(arguments[2]) < 0
-			and arguments[2] ~= nil then
+		if arguments[2] ~= nil
+			and tonumber(arguments[2]) < 0 then
 				DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Unkown parameter. Possible values: 0 or more. 10 is the default parameter.|r")
 				return
 		end
@@ -112,8 +112,8 @@ function SlashCmdList.IWINWARRIOR(command)
         IWin_Settings["chargewl"] = arguments[2]
 	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Charge whitelist: |r" .. IWin_Settings["chargewl"])
 	elseif arguments[1] == "sunder" then
-	    IWin_Settings["sunder"] = arguments[2]
-	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Sunder Armor: |r" .. IWin_Settings["sunder"])
+	    if arguments[2] then IWin_Settings["sunder"] = arguments[2] end
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Sunder Armor: |r" .. tostring(IWin_Settings["sunder"]))
 	elseif arguments[1] == "demo" then
 	    IWin_Settings["demo"] = arguments[2]
 	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Demoralizing Shout: |r" .. IWin_Settings["demo"])
@@ -130,13 +130,23 @@ function SlashCmdList.IWINWARRIOR(command)
 	    IWin_Settings["rageTimeToReserveBuffer"] = tonumber(arguments[2])
 	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Rage Buffer: |r" .. tostring(IWin_Settings["rageTimeToReserveBuffer"]))
 	elseif arguments[1] == "ragegain" then
-	    IWin_Settings["ragePerSecondPrediction"] = tonumber(arguments[2])
-	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Rage Gain per second: |r" .. tostring(IWin_Settings["ragePerSecondPrediction"]))
+	    if arguments[2] then IWin_Settings["ragePerSecondPrediction"] = tonumber(arguments[2]) end
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Rage Gain per second (initial): |r" .. tostring(IWin_Settings["ragePerSecondPrediction"]))
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Rage Gain per second (RLS): |r" .. tostring(IWin:GetRagePerSecond(false)))
 	elseif arguments[1] == "jousting" then
 	    IWin_Settings["jousting"] = arguments[2]
 	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Jousting: |r" .. IWin_Settings["jousting"])
+	elseif arguments[1] == "overpower" then
+	    if arguments[2] then IWin_Settings["overpower"] = arguments[2] end
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Overpower: |r" .. IWin_Settings["overpower"])
+	elseif arguments[1] == "berserkerrage" then
+	    if arguments[2] then IWin_Settings["berserkerrage"] = arguments[2] end
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Berserker Rage: |r" .. IWin_Settings["berserkerrage"])
+	elseif arguments[1] == "rend" then
+	    if arguments[2] then IWin_Settings["rend"] = arguments[2] end
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Rend: |r" .. IWin_Settings["rend"])
 	elseif arguments[1] == "thunderclap" then
-	    IWin_Settings["thunderclap"] = arguments[2]
+	    if arguments[2] then IWin_Settings["thunderclap"] = arguments[2] end
 	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Thunder Clap: |r" .. IWin_Settings["thunderclap"])
 	else
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Usage:|r")
@@ -151,8 +161,11 @@ function SlashCmdList.IWINWARRIOR(command)
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin dtdefensive [|r" .. IWin_Settings["dtDefensive"] .. "|cff0066ff]:|r Use Defensive stance with Defensive Tactics.")
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin dtberserker [|r" .. IWin_Settings["dtBerserker"] .. "|cff0066ff]:|r Use Berserker stance with Defensive Tactics.")
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin ragebuffer [|r" .. tostring(IWin_Settings["rageTimeToReserveBuffer"]) .. "|cff0066ff]:|r Save 100% required rage for spells X seconds before the spells are used. 1.5 is the default parameter.")
-		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin ragegain [|r" .. tostring(IWin_Settings["ragePerSecondPrediction"]) .. "|cff0066ff]:|r Anticipate rage gain per second. Required rage will be saved gradually before the spells are used. 10 is the default parameter. Increase the value if rage is wasted.")
+		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin ragegain [|r" .. tostring(IWin_Settings["ragePerSecondPrediction"]) .. "|cff0066ff]:|r Initial rage per second estimate (seed for dynamic RLS tracking). Current dynamic value: " .. tostring(IWin:GetRagePerSecond(false)))
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin jousting [|r" .. IWin_Settings["jousting"] .. "|cff0066ff]:|r Use Hamstring to joust with target in solo DPS.")
+		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin overpower [|r" .. IWin_Settings["overpower"] .. "|cff0066ff]:|r Use Overpower.")
+		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin berserkerrage [|r" .. IWin_Settings["berserkerrage"] .. "|cff0066ff]:|r Use Berserker Rage for rage generation.")
+		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin rend [|r" .. IWin_Settings["rend"] .. "|cff0066ff]:|r Use Rend.")
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin thunderclap [|r" .. IWin_Settings["thunderclap"] .. "|cff0066ff]:|r Use Thunder Clap.")
     end
 end

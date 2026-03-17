@@ -9,7 +9,11 @@ IWin:RegisterEvent("CHAT_MSG_COMBAT_CREATURE_VS_SELF_MISSES")
 IWin:RegisterEvent("CHAT_MSG_COMBAT_SELF_MISSES")
 IWin:RegisterEvent("CHAT_MSG_SPELL_DAMAGESHIELDS_ON_SELF")
 IWin:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
+IWin:RegisterEvent("PLAYER_REGEN_ENABLED")
+IWin:RegisterEvent("PLAYER_REGEN_DISABLED")
+IWin:RegisterEvent("PLAYER_ENTERING_WORLD")
 IWin:RegisterEvent("SPELLCAST_START")
+IWin:RegisterEvent("UNIT_RAGE_GUID")
 
 IWin:SetScript("OnEvent", function()
 	if event == "ADDON_LOADED" and arg1 == "IWinEnhanced" then
@@ -30,6 +34,9 @@ IWin:SetScript("OnEvent", function()
 		if IWin_Settings["dtDefensive"] == nil then IWin_Settings["dtDefensive"] = "on" end
 		if IWin_Settings["dtBerserker"] == nil then IWin_Settings["dtBerserker"] = "off" end
 		if IWin_Settings["jousting"] == nil then IWin_Settings["jousting"] = "off" end
+		if IWin_Settings["overpower"] == nil then IWin_Settings["overpower"] = "off" end
+		if IWin_Settings["berserkerrage"] == nil then IWin_Settings["berserkerrage"] = "off" end
+		if IWin_Settings["rend"] == nil then IWin_Settings["rend"] = "off" end
 		if IWin_Settings["thunderclap"] == nil then IWin_Settings["thunderclap"] = "on" end
 		--init
 		IWin_CombatVar["slamQueued"] = false
@@ -42,6 +49,29 @@ IWin:SetScript("OnEvent", function()
 		IWin_RotationVar["slamGCDAllowed"] = 0
 		IWin_RotationVar["slamClipAllowedMax"] = 0
 		IWin_RotationVar["slamClipAllowedMin"] = 0
+		IWin_RotationVar["combatStart"] = 0
+		IWin_RLS = nil
+		IWin_RLS_lastRage = nil
+		IWin_RLS_lastValue = nil
+		IWin_RLS_hasGuidEvent = false
+		IWin_RLS_updateTimer = 0
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		if UnitAffectingCombat("player") then
+			IWin:ResetRageRLS()
+			IWin_RLS_lastRage = UnitMana("player")
+			IWin_RotationVar["combatStart"] = GetTime()
+		end
+	elseif event == "PLAYER_REGEN_DISABLED" then
+		IWin:ResetRageRLS()
+		IWin_RLS_lastRage = UnitMana("player")
+		IWin_RLS_pendingEnergize = 0
+		IWin_RotationVar["combatStart"] = GetTime()
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		if IWin_RLS then
+			IWin_RLS_lastValue = IWin_RLS["w1"]
+		end
+		IWin_RLS_lastRage = nil
+		IWin_RLS_pendingEnergize = 0
 	elseif event == "CHAT_MSG_COMBAT_CREATURE_VS_SELF_HITS" then
 		if string_find(arg1,"blocked") then
 			IWin_RotationVar["revengeAvailable"] = IWin:GetTime(false) + 4
@@ -58,6 +88,14 @@ IWin:SetScript("OnEvent", function()
 		if string_find(arg1,"dodged") then
 			IWin_RotationVar["overpowerAvailable"] = IWin:GetTime(false) + 4
 		end
+	elseif event == "UNIT_RAGE_GUID" and arg2 == 1 and IWin_RLS_lastRage then
+		IWin_RLS_hasGuidEvent = true
+		local currentRage = UnitMana("player")
+		local delta = currentRage - IWin_RLS_lastRage
+		if delta > 0 then
+			IWin:UpdateRageRLS(delta)
+		end
+		IWin_RLS_lastRage = currentRage
 	elseif event == "SPELLCAST_START" and arg1 == "Slam" then
 		IWin_RotationVar["slamCasting"] = IWin:GetTime(false) + (arg2 / 1000)
 		if st_timer and st_timer > UnitAttackSpeed("player") * 0.9 then
@@ -66,4 +104,18 @@ IWin:SetScript("OnEvent", function()
 			IWin_RotationVar["slamClipAllowedMin"] = st_timer + IWin:GetTime(false)
 		end
 	end
+end)
+
+IWin:SetScript("OnUpdate", function()
+	if IWin_RLS_hasGuidEvent then return end
+	IWin_RLS_updateTimer = (IWin_RLS_updateTimer or 0) + arg1
+	if IWin_RLS_updateTimer < 0.05 then return end
+	IWin_RLS_updateTimer = 0
+	if not IWin_RLS_lastRage then return end
+	local currentRage = UnitMana("player")
+	local delta = currentRage - IWin_RLS_lastRage
+	if delta > 0 then
+		IWin:UpdateRageRLS(delta)
+	end
+	IWin_RLS_lastRage = currentRage
 end)

@@ -30,7 +30,7 @@ function IWin:GetStanceSwapRageRetain(debugmsg)
 end
 
 function IWin:IsStanceSwapMaxRageLoss(maxRageLoss, spell, debugmsg)
-	if IWin_Settings["ragePerSecondPrediction"] > 29 then return true end
+	if IWin:GetRagePerSecond(false) > 29 then return true end
 	local spellCost = 0
 	if spell then
 		spellCost = IWin_RageCost[spell]
@@ -125,11 +125,80 @@ function IWin:IsDefensiveTacticsStanceAvailable(stance, debugmsg)
 	return false
 end
 
-function IWin:IsHighAP(debugmsg)
+function IWin:IsBloodthirstOverExecute(debugmsg)
 	local APbase, APpos, APneg = UnitAttackPower("player")
-	local result = (APbase + APpos - APneg) * 0.35 + 200
-	IWin:Debug("Attack power : "..tostring(result), debugmsg)
-	return result > 600 + 20 * 15
+	local btDamage = (APbase + APpos - APneg) * 0.35 + 200
+	local executeDamage = 600 + (IWin_RageCost["Bloodthirst"] - IWin_RageCost["Execute"]) * 15
+	local result = btDamage > executeDamage
+	IWin:Debug("BT ("..tostring(btDamage)..") > Execute ("..tostring(executeDamage).."): "..tostring(result), debugmsg)
+	return result
+end
+
+-- RLS (Recursive Least Squares) for dynamic rage per second estimation
+-- Models cumulative rage gained as a linear function of time: rage(t) = slope * t + offset
+-- The slope is the estimated rage per second
+function IWin:UpdateRageRLS(rageGained)
+	local now = GetTime()
+	if not IWin_RLS then return end
+	-- Accumulate total rage gained
+	IWin_RLS["totalRage"] = IWin_RLS["totalRage"] + rageGained
+	-- Input vector: [time, 1]
+	local t = now - IWin_RLS["startTime"]
+	local y = IWin_RLS["totalRage"]
+	local lambda = IWin_RLS["lambda"]
+	-- P matrix (2x2 symmetric): p11, p12, p22
+	local p11 = IWin_RLS["p11"]
+	local p12 = IWin_RLS["p12"]
+	local p22 = IWin_RLS["p22"]
+	-- Gain vector: k = P * x / (lambda + x' * P * x)
+	local px1 = p11 * t + p12
+	local px2 = p12 * t + p22
+	local denom = lambda + t * px1 + px2
+	if denom == 0 then return end
+	local k1 = px1 / denom
+	local k2 = px2 / denom
+	-- Prediction error
+	local w1 = IWin_RLS["w1"]
+	local w2 = IWin_RLS["w2"]
+	local err = y - (w1 * t + w2)
+	-- Update weights
+	IWin_RLS["w1"] = w1 + k1 * err
+	IWin_RLS["w2"] = w2 + k2 * err
+	-- Update P matrix: P = (P - k * x' * P) / lambda
+	local invLambda = 1 / lambda
+	IWin_RLS["p11"] = (p11 - k1 * px1) * invLambda
+	IWin_RLS["p12"] = (p12 - k1 * px2) * invLambda
+	IWin_RLS["p22"] = (p22 - k2 * px2) * invLambda
+end
+
+function IWin:ResetRageRLS()
+	IWin_RLS = {
+		["startTime"] = GetTime(),
+		["totalRage"] = 0,
+		["lambda"] = 0.95,
+		-- P matrix initialized to large values (high uncertainty)
+		["p11"] = 1000,
+		["p12"] = 0,
+		["p22"] = 1000,
+		-- Weight vector: w1 = slope (rage/sec), w2 = offset
+		["w1"] = IWin_Settings["ragePerSecondPrediction"],
+		["w2"] = 0,
+	}
+end
+
+function IWin:GetRagePerSecond(debugmsg)
+	if IWin_RLS then
+		local result = math.max(0, IWin_RLS["w1"])
+		IWin:Debug("Dynamic rage per second: "..tostring(result), debugmsg)
+		return result
+	end
+	if IWin_RLS_lastValue then
+		local result = math.max(0, IWin_RLS_lastValue)
+		IWin:Debug("Last combat rage per second: "..tostring(result), debugmsg)
+		return result
+	end
+	IWin:Debug("RLS not initialized, using setting: "..tostring(IWin_Settings["ragePerSecondPrediction"]), debugmsg)
+	return IWin_Settings["ragePerSecondPrediction"]
 end
 
 function IWin:IsChargeTargetAvailable(debugmsg)
