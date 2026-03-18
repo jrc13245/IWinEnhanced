@@ -16,6 +16,10 @@ Contributor: Vlad/Goodnice - Tel'Abim
 - Dynamic rage income tracking using RLS (Recursive Least Squares) with Nampower UNIT_RAGE_GUID and OnUpdate fallback
 - Per-rotation query caching for all core condition functions
 - Heroic Strike blocked during execute phase
+- Pre-attack Heroic Strike and Cleave queuing on non-bosses with opener rage budgeting
+- Sunder Armor rework: boss targets build to 5 stacks with 6s refresh (avoids clipping BT/WW), non-boss targets get one sunder per target
+- 10-second TTK stabilization delay before boss cooldown decisions
+- Overpower and Berserker Rage added to tank rotations (/itank, /ihodor)
 - Toggle settings for Overpower, Berserker Rage, Rend (default off)
 
 ## Mods Dependencies

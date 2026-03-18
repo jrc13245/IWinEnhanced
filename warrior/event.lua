@@ -49,7 +49,7 @@ IWin:SetScript("OnEvent", function()
 		IWin_RotationVar["slamGCDAllowed"] = 0
 		IWin_RotationVar["slamClipAllowedMax"] = 0
 		IWin_RotationVar["slamClipAllowedMin"] = 0
-		IWin_RotationVar["combatStart"] = 0
+		IWin_RotationVar["combatStart"] = GetTime()
 		IWin_RLS = nil
 		IWin_RLS_lastRage = nil
 		IWin_RLS_lastValue = nil

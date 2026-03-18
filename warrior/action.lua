@@ -100,7 +100,7 @@ function IWin:BloodrageDPS()
 	local spell = "Bloodrage"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
 	if IWin:IsBoss(false) and not IWin:IsBlacklistCooldown(false) then
-		if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 5 then return end
+		if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 		local ttd = IWin:GetTimeToDie(false)
 		if ttd <= 11 and IWin:IsExecutePhase(false) then
 			IWin:Cast(spell, false)
@@ -118,7 +118,7 @@ end
 function IWin:DeathWishDPS()
 	local spell = "Death Wish"
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
-	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 5 then return end
+	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 	if IWin:IsSpellSkip(spell, nil, true, IWin_Settings["GCD"], true) then return end
 	if not IWin:IsRageAvailable(spell) then return end
 	local ttd = IWin:GetTimeToDie(false)
@@ -133,7 +133,7 @@ function IWin:BloodFuryDPS()
 	local spell = "Blood Fury"
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
 	if UnitRace("player") ~= "Orc" then return end
-	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 5 then return end
+	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 	if IWin:IsSpellSkip(spell, nil, true, IWin_Settings["GCD"], true) then return end
 	local ttd = IWin:GetTimeToDie(false)
 	if ttd <= 15 then
@@ -145,7 +145,7 @@ end
 
 function IWin:UseTrinketBoss(name, ttdMin, ttdMax, saveThreshold)
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
-	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 5 then return end
+	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 	local ttd = IWin:GetTimeToDie(false)
 	if not ((ttd >= ttdMin and ttd <= ttdMax) or ttd > saveThreshold) then return end
 	for _, slot in ipairs({13, 14}) do
@@ -161,7 +161,7 @@ end
 
 function IWin:UseConsumableBoss(name)
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
-	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 5 then return end
+	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 	for bag = 0, 4 do
 		for slot = 1, GetContainerNumSlots(bag) do
 			local itemName = GetContainerItemLink(bag, slot)
@@ -258,6 +258,7 @@ end
 function IWin:Cleave(range)
 	local spell = "Cleave"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
+	if IWin_CombatVar["swingAttackQueued"] then return end
 	if IWin:GetEnemyInFront(range) > 1
 		and (
 				IWin:IsRageAvailable(spell)
@@ -488,10 +489,56 @@ function IWin:SetReservedRageHamstringWindfury()
 	end
 end
 
+function IWin:GetPreAttackMinRage(spell)
+	local minRage = IWin_RageCost[spell]
+	if IWin:IsSpellLearnt("Sunder Armor", nil, false) and IWin_Settings["sunder"] ~= "off" then
+		minRage = minRage + IWin_RageCost["Sunder Armor"]
+	end
+	if IWin:IsSpellLearnt("Bloodthirst", nil, false) then
+		minRage = minRage + IWin_RageCost["Bloodthirst"]
+	end
+	if IWin:IsSpellLearnt("Whirlwind", nil, false) then
+		minRage = minRage + IWin_RageCost["Whirlwind"]
+	end
+	minRage = minRage - IWin:GetRagePerSecond(false) * IWin_Settings["GCD"] * 2
+	return math.max(minRage, IWin_RageCost[spell])
+end
+
+function IWin:HeroicStrikePreAttack(range)
+	local spell = "Heroic Strike"
+	if IWin:IsBoss(false) then return end
+	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
+	if IWin:IsExecutePhase(false) then return end
+	if IWin_CombatVar["swingAttackQueued"] then return end
+	if (
+			IWin:GetEnemyInRange(range) <= 1
+			or not IWin:IsSpellLearnt("Cleave")
+		)
+		and IWin:GetPower("player", false) >= IWin:GetPreAttackMinRage(spell) then
+			IWin_CombatVar["swingAttackQueued"] = true
+			IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
+			IWin:Cast(spell, false)
+	end
+end
+
+function IWin:CleavePreAttack(range)
+	local spell = "Cleave"
+	if IWin:IsBoss(false) then return end
+	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
+	if IWin_CombatVar["swingAttackQueued"] then return end
+	if IWin:GetEnemyInFront(range) > 1
+		and IWin:GetPower("player", false) >= IWin:GetPreAttackMinRage(spell) then
+			IWin_CombatVar["swingAttackQueued"] = true
+			IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
+			IWin:Cast(spell, false)
+	end
+end
+
 function IWin:HeroicStrike(range)
 	local spell = "Heroic Strike"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
 	if IWin:IsExecutePhase(false) then return end
+	if IWin_CombatVar["swingAttackQueued"] then return end
 	if (
 			IWin:GetEnemyInRange(range) <= 1
 			or not IWin:IsSpellLearnt("Cleave")
@@ -1042,12 +1089,14 @@ end
 function IWin:SunderArmorDPS()
 	local spell = "Sunder Armor"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
-	if not (IWin_Settings["sunder"] == "off")
-		and not IWin:IsBuffStack("target", spell, 5)
-		and not IWin:IsBuffActive("target", "Expose Armor")
-		and IWin:GetTimeToDie() > 5
+	if IWin_Settings["sunder"] == "off" then return end
+	if IWin:IsBuffActive("target", "Expose Armor") then return end
+	if IWin:IsBuffStack("target", spell, 5) then return end
+	if not IWin:IsBoss(false) and IWin_Target["sundered"] then return end
+	if IWin:GetTimeToDie() > 5
 		and IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
+			IWin_Target["sundered"] = true
 			IWin:Cast(spell)
 	end
 end
@@ -1055,6 +1104,7 @@ end
 function IWin:SetReservedRageSunderArmorDPS()
 	local spell = "Sunder Armor"
 	if not IWin:IsSpellLearnt(spell, nil, false) then return end
+	if not IWin:IsBoss(false) then return end
 	if not (IWin_Settings["sunder"] == "off")
 		and not IWin:IsBuffStack("target", spell, 5, nil, false)
 		and not IWin:IsBuffActive("target", "Expose Armor", nil, false)
@@ -1075,6 +1125,7 @@ end
 function IWin:SetReservedRageSunderArmorDPS2Hander()
 	local spell = "Sunder Armor"
 	if not IWin:IsSpellLearnt(spell, nil, false) then return end
+	if not IWin:IsBoss(false) then return end
 	if not (IWin_Settings["sunder"] == "off")
 		and not IWin:IsBuffStack("target", spell, 5, nil, false)
 		and not IWin:IsBuffActive("target", "Expose Armor", nil, false)
@@ -1098,16 +1149,32 @@ function IWin:SunderArmorElite()
 	end
 end
 
-function IWin:SunderArmorDPSRefresh(timeLeft)
+function IWin:SunderArmorDPSRefresh()
 	local spell = "Sunder Armor"
+	if not IWin:IsBoss(false) then return end
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
 	if not (IWin_Settings["sunder"] == "off")
 		and IWin:IsBuffActive("target", spell)
-		and IWin:GetBuffRemaining("target", spell) < timeLeft
+		and IWin:GetBuffRemaining("target", spell) < 6
 		and IWin:GetBuffRemaining("target", spell) < IWin:GetTimeToDie()
-		and IWin:IsRageCostAvailable(spell)
+		and (not IWin:IsSpellLearnt("Bloodthirst", nil, false) or IWin:GetCooldownRemaining("Bloodthirst", false) >= IWin_Settings["GCD"])
+		and (not IWin:IsSpellLearnt("Whirlwind", nil, false) or IWin:GetCooldownRemaining("Whirlwind", false) >= IWin_Settings["GCD"])
+		and IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
 			IWin:Cast(spell)
+	end
+end
+
+function IWin:SetReservedRageSunderArmorDPSRefresh()
+	local spell = "Sunder Armor"
+	if not IWin:IsBoss(false) then return end
+	if not IWin:IsSpellLearnt(spell, nil, false) then return end
+	if not (IWin_Settings["sunder"] == "off")
+		and IWin:IsBuffActive("target", spell, nil, false)
+		and IWin:GetBuffRemaining("target", spell, nil, false) < 6
+		and (not IWin:IsSpellLearnt("Bloodthirst", nil, false) or IWin:GetCooldownRemaining("Bloodthirst", false) >= IWin_Settings["GCD"])
+		and (not IWin:IsSpellLearnt("Whirlwind", nil, false) or IWin:GetCooldownRemaining("Whirlwind", false) >= IWin_Settings["GCD"]) then
+			IWin:SetReservedRage(spell, "nocooldown")
 	end
 end
 
