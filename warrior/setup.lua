@@ -148,6 +148,11 @@ function SlashCmdList.IWINWARRIOR(command)
 	elseif arguments[1] == "thunderclap" then
 	    if arguments[2] then IWin_Settings["thunderclap"] = arguments[2] end
 	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Thunder Clap: |r" .. IWin_Settings["thunderclap"])
+	elseif arguments[1] == "ragecost" then
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Rage Costs:|r")
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff  Heroic Strike: |r" .. tostring(IWin_RageCost["Heroic Strike"]))
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff  Sunder Armor: |r" .. tostring(IWin_RageCost["Sunder Armor"]))
+	    DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff  Whirlwind: |r" .. tostring(IWin_RageCost["Whirlwind"]))
 	else
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff Usage:|r")
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin:|r Current setup")
@@ -167,5 +172,6 @@ function SlashCmdList.IWINWARRIOR(command)
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin berserkerrage [|r" .. IWin_Settings["berserkerrage"] .. "|cff0066ff]:|r Use Berserker Rage for rage generation.")
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin rend [|r" .. IWin_Settings["rend"] .. "|cff0066ff]:|r Use Rend.")
 		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin thunderclap [|r" .. IWin_Settings["thunderclap"] .. "|cff0066ff]:|r Use Thunder Clap.")
+		DEFAULT_CHAT_FRAME:AddMessage("|cff0066ff /iwin ragecost:|r Show current rage costs for Heroic Strike, Sunder Armor, Whirlwind.")
     end
 end

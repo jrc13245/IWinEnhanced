@@ -19,6 +19,14 @@ function IWin:BattleShout()
 	end
 end
 
+function IWin:SetReservedRageBattleShout()
+	local spell = "Battle Shout"
+	if not IWin:IsSpellLearnt(spell, nil, false) then return end
+	if IWin:GetBuffRemaining("player", spell, nil, false) < 10 then
+		IWin:SetReservedRage(spell, "buff", "player")
+	end
+end
+
 function IWin:BattleShoutRefresh()
 	local spell = "Battle Shout"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
@@ -195,6 +203,7 @@ end
 function IWin:Bloodthirst(queueTime)
 	local spell = "Bloodthirst"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
+	if IWin:IsExecutePhase(false) and (not IWin:IsBoss(false) or IWin:GetTimeToDie(false) <= 5) then return end
 	if IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
 			IWin:Cast(spell)
@@ -258,12 +267,21 @@ end
 function IWin:Cleave(range)
 	local spell = "Cleave"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
+	if IWin:IsExecutePhase(false) then return end
 	if IWin_CombatVar["swingAttackQueued"] then return end
+	if not IWin:IsRageAvailable(spell) then return end
+	local reserve = IWin_RageCost[spell]
+	if IWin:IsSpellLearnt("Bloodthirst", nil, false) then
+		reserve = reserve + IWin_RageCost["Bloodthirst"]
+	end
+	if IWin:IsSpellLearnt("Whirlwind", nil, false) then
+		local btCd = IWin:IsSpellLearnt("Bloodthirst", nil, false) and IWin:GetCooldownRemaining("Bloodthirst", false) or 99
+		if btCd > 1.5 then
+			reserve = reserve + IWin_RageCost["Whirlwind"]
+		end
+	end
 	if IWin:GetEnemyInFront(range) > 1
-		and (
-				IWin:IsRageAvailable(spell)
-				or IWin:GetPower("player") > 100 - IWin:GetRagePerSecond(false) * IWin_Settings["GCD"]
-			) then
+		and IWin:GetPower("player") >= reserve then
 				IWin_CombatVar["swingAttackQueued"] = true
 				IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
 				IWin:Cast(spell, false)
@@ -344,9 +362,10 @@ function IWin:Execute(queueTime, range)
 	local spell = "Execute"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
 	if IWin:IsExecutePhase()
-		and IWin:GetEnemyInRange(range) <= 1
+		and (IWin:IsBoss() or IWin:GetEnemyInRange(range) <= 1)
 		and (
-				IWin:IsPVP("target")
+				IWin:IsBoss()
+				or IWin:IsPVP("target")
 				or IWin:GetHealthPercent("player") < 40
 				or IWin:IsElite()
 				or (
@@ -539,20 +558,22 @@ function IWin:HeroicStrike(range)
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
 	if IWin:IsExecutePhase(false) then return end
 	if IWin_CombatVar["swingAttackQueued"] then return end
+	if not IWin:IsRageAvailable(spell) then return end
+	local reserve = IWin_RageCost[spell]
+	if IWin:IsSpellLearnt("Bloodthirst", nil, false) then
+		reserve = reserve + IWin_RageCost["Bloodthirst"]
+	end
+	if IWin:IsSpellLearnt("Whirlwind", nil, false) then
+		local btCd = IWin:IsSpellLearnt("Bloodthirst", nil, false) and IWin:GetCooldownRemaining("Bloodthirst", false) or 99
+		if btCd > 1.5 then
+			reserve = reserve + IWin_RageCost["Whirlwind"]
+		end
+	end
 	if (
 			IWin:GetEnemyInRange(range) <= 1
 			or not IWin:IsSpellLearnt("Cleave")
 		)
-		and (
-				IWin:IsRageAvailable(spell)
-				or (
-						IWin:GetPower("player") > 100 - IWin:GetRagePerSecond(false) * IWin_Settings["GCD"]
-						and (
-								not IWin:IsSpellLearnt("Whirlwind")
-								or IWin:GetCooldownRemaining("Whirlwind") > 0
-							)
-					)
-			) then
+		and IWin:GetPower("player") >= reserve then
 				IWin_CombatVar["swingAttackQueued"] = true
 				IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
 				IWin:Cast(spell, false)
@@ -1092,7 +1113,7 @@ function IWin:SunderArmorDPS()
 	if IWin_Settings["sunder"] == "off" then return end
 	if IWin:IsBuffActive("target", "Expose Armor") then return end
 	if IWin:IsBuffStack("target", spell, 5) then return end
-	if not IWin:IsBoss(false) and IWin_Target["sundered"] then return end
+	if IWin_Target["sundered"] then return end
 	if IWin:GetTimeToDie() > 5
 		and IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
@@ -1104,12 +1125,11 @@ end
 function IWin:SetReservedRageSunderArmorDPS()
 	local spell = "Sunder Armor"
 	if not IWin:IsSpellLearnt(spell, nil, false) then return end
-	if not IWin:IsBoss(false) then return end
+	if IWin_Target["sundered"] then return end
 	if not (IWin_Settings["sunder"] == "off")
 		and not IWin:IsBuffStack("target", spell, 5, nil, false)
 		and not IWin:IsBuffActive("target", "Expose Armor", nil, false)
-		and IWin:GetTimeToDie(false) > 5
-		and not IWin:Is2HanderEquipped(false) then
+		and IWin:GetTimeToDie(false) > 5 then
 			IWin:SetReservedRage(spell, "nocooldown")
 	end
 end
@@ -1305,6 +1325,7 @@ end
 function IWin:Whirlwind(queueTime, range)
 	local spell = "Whirlwind"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
+	if IWin:IsExecutePhase(false) and IWin:IsBoss(false) and IWin:GetTimeToDie(false) <= 5 then return end
 	if IWin:IsAffectingCombat("player")
 		and IWin:GetEnemyInRange(range) > 1
 		and IWin:IsReservedRageStance("Berserker Stance")
@@ -1323,6 +1344,35 @@ function IWin:Whirlwind(queueTime, range)
 						IWin:Cast(spell)
 					end
 			end
+	end
+end
+
+function IWin:WhirlwindDPS(queueTime)
+	local spell = "Whirlwind"
+	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
+	if IWin:IsExecutePhase(false) then return end
+	if IWin:IsAffectingCombat("player")
+		and not IWin:IsBlacklistAOEDamage()
+		and not IWin_CombatVar["slamQueued"]
+		and (not IWin:IsSpellLearnt("Bloodthirst", nil, false) or IWin:GetCooldownRemaining("Bloodthirst", false) > 1.5)
+		and IWin:IsRageCostAvailable(spell) then
+			if not IWin:IsStanceActive("Berserker Stance") then
+				if IWin:IsReservedRageStance("Berserker Stance") then
+					IWin:SetReservedRageStance("Berserker Stance")
+					IWin:SetReservedRageStanceCast()
+					IWin:Cast("Berserker Stance", false)
+				end
+			else
+				IWin:Cast(spell)
+			end
+	end
+end
+
+function IWin:SetReservedRageWhirlwindDPS()
+	local spell = "Whirlwind"
+	if not IWin:IsSpellLearnt(spell, nil, false) then return end
+	if not IWin:IsSpellLearnt("Bloodthirst", nil, false) or IWin:GetCooldownRemaining("Bloodthirst", false) > 1.5 then
+		IWin:SetReservedRage(spell, "cooldown")
 	end
 end
 

@@ -175,7 +175,7 @@ function IWin:ResetRageRLS()
 	IWin_RLS = {
 		["startTime"] = GetTime(),
 		["totalRage"] = 0,
-		["lambda"] = 0.95,
+		["lambda"] = 0.85,
 		-- P matrix initialized to large values (high uncertainty)
 		["p11"] = 1000,
 		["p12"] = 0,

@@ -110,6 +110,7 @@ IWin_BlacklistCooldown = {
 	["Noth the Plaguebringer"] = true,
 	["Blue Owl"] = true,
 	["Red Owl"] = true,
+	["Mephistroth"] = true,
 }
 
 IWin_BlacklistFear = {
