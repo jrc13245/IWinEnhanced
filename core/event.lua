@@ -19,11 +19,17 @@ IWin_core:SetScript("OnEvent", function()
 		IWin_CastTime = {}--combat var
 		IWin_CombatVar = {
 			["affectingCombat"] = {},
+			["buffRemaining"] = {},
+			["buffStack"] = {},
+			["casting"] = {},
+			["cooldown"] = {},
 			["dead"] = {},
 			["enemyInFront"] = {},
 			["enemyInRange"] = {},
 			["energyPerSecondPrediction"] = 0,
 			["GCD"] = 0,
+			["health"] = {},
+			["inRange"] = {},
 			["level"] = {},
 			["queueGCD"] = true,
 			["reservedEnergy"] = 0,

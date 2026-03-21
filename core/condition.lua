@@ -124,20 +124,20 @@ function IWin:GetBuffRemaining(unit, spell, owner, debugmsg)
 		        return 9999
 		    end
 		end
-		-- SCRM overflow buff scan
-		if CleveRoids and CleveRoids.OverflowBuffs then
-			for spellId, data in pairs(CleveRoids.OverflowBuffs) do
-				if SpellInfo(spellId) == spell then
-					local timeLeft = data.durationSec - (GetTime() - data.timestamp)
-					if timeLeft > 0 then
-						IWin:Debug("Overflow buff remaining "..spell.." on "..unit..": "..tostring(timeLeft), debugmsg)
-						IWin_CombatVar["buffRemaining"][cacheKey] = timeLeft
-						return timeLeft
-					end
+	end
+	-- SCRM overflow buff scan
+	if CleveRoids and CleveRoids.OverflowBuffs then
+		for spellId, data in pairs(CleveRoids.OverflowBuffs) do
+			if SpellInfo(spellId) == spell then
+				local timeLeft = data.durationSec - (GetTime() - data.timestamp)
+				if timeLeft > 0 then
+					IWin:Debug("Overflow buff remaining "..spell.." on "..unit..": "..tostring(timeLeft), debugmsg)
+					IWin_CombatVar["buffRemaining"][cacheKey] = timeLeft
+					return timeLeft
 				end
 			end
 		end
-    end
+	end
     -- Debuff scan overflow as buff
 	for index = 1, 64 do
 	    local effect, _, _, _, _, _, timeLeft, caster = IWin.libdebuff:UnitBuff(unit, index)
@@ -205,16 +205,16 @@ function IWin:GetBuffStack(unit, spell, owner, debugmsg)
 			IWin_CombatVar["buffStack"][cacheKey] = result
 			return result
 		end
-		-- SCRM overflow buff scan
-		if CleveRoids and CleveRoids.OverflowBuffs then
-			for spellId, data in pairs(CleveRoids.OverflowBuffs) do
-				if SpellInfo(spellId) == spell then
-					local timeLeft = data.durationSec - (GetTime() - data.timestamp)
-					if timeLeft > 0 then
-						IWin:Debug("Overflow buff "..spell.." on "..unit..": 1 stack", debugmsg)
-						IWin_CombatVar["buffStack"][cacheKey] = 1
-						return 1
-					end
+	end
+	-- SCRM overflow buff scan
+	if CleveRoids and CleveRoids.OverflowBuffs then
+		for spellId, data in pairs(CleveRoids.OverflowBuffs) do
+			if SpellInfo(spellId) == spell then
+				local timeLeft = data.durationSec - (GetTime() - data.timestamp)
+				if timeLeft > 0 then
+					IWin:Debug("Overflow buff "..spell.." on "..unit..": 1 stack", debugmsg)
+					IWin_CombatVar["buffStack"][cacheKey] = 1
+					return 1
 				end
 			end
 		end
@@ -710,6 +710,73 @@ function IWin:IsDruidManaAvailable(spell, debugmsg)
 	local result = IWin:GetPlayerDruidMana() >= IWin_ManaCost[spell]
 	IWin:Debug("Druid mana available for "..spell..": "..tostring(result), debugmsg)
 	return result
+end
+
+-- RLS (Recursive Least Squares) for dynamic rage per second estimation
+-- Models cumulative rage gained as a linear function of time: rage(t) = slope * t + offset
+-- The slope is the estimated rage per second
+function IWin:UpdateRageRLS(rageGained)
+	local now = GetTime()
+	if not IWin_RLS then return end
+	-- Accumulate total rage gained
+	IWin_RLS["totalRage"] = IWin_RLS["totalRage"] + rageGained
+	-- Input vector: [time, 1]
+	local t = now - IWin_RLS["startTime"]
+	local y = IWin_RLS["totalRage"]
+	local lambda = IWin_RLS["lambda"]
+	-- P matrix (2x2 symmetric): p11, p12, p22
+	local p11 = IWin_RLS["p11"]
+	local p12 = IWin_RLS["p12"]
+	local p22 = IWin_RLS["p22"]
+	-- Gain vector: k = P * x / (lambda + x' * P * x)
+	local px1 = p11 * t + p12
+	local px2 = p12 * t + p22
+	local denom = lambda + t * px1 + px2
+	if denom == 0 then return end
+	local k1 = px1 / denom
+	local k2 = px2 / denom
+	-- Prediction error
+	local w1 = IWin_RLS["w1"]
+	local w2 = IWin_RLS["w2"]
+	local err = y - (w1 * t + w2)
+	-- Update weights
+	IWin_RLS["w1"] = w1 + k1 * err
+	IWin_RLS["w2"] = w2 + k2 * err
+	-- Update P matrix: P = (P - k * x' * P) / lambda
+	local invLambda = 1 / lambda
+	IWin_RLS["p11"] = (p11 - k1 * px1) * invLambda
+	IWin_RLS["p12"] = (p12 - k1 * px2) * invLambda
+	IWin_RLS["p22"] = (p22 - k2 * px2) * invLambda
+end
+
+function IWin:ResetRageRLS()
+	IWin_RLS = {
+		["startTime"] = GetTime(),
+		["totalRage"] = 0,
+		["lambda"] = 0.85,
+		-- P matrix initialized to large values (high uncertainty)
+		["p11"] = 1000,
+		["p12"] = 0,
+		["p22"] = 1000,
+		-- Weight vector: w1 = slope (rage/sec), w2 = offset
+		["w1"] = IWin_Settings["ragePerSecondPrediction"],
+		["w2"] = 0,
+	}
+end
+
+function IWin:GetRagePerSecond(debugmsg)
+	if IWin_RLS then
+		local result = math.max(0, IWin_RLS["w1"])
+		IWin:Debug("Dynamic rage per second: "..tostring(result), debugmsg)
+		return result
+	end
+	if IWin_RLS_lastValue then
+		local result = math.max(0, IWin_RLS_lastValue)
+		IWin:Debug("Last combat rage per second: "..tostring(result), debugmsg)
+		return result
+	end
+	IWin:Debug("RLS not initialized, using setting: "..tostring(IWin_Settings["ragePerSecondPrediction"]), debugmsg)
+	return IWin_Settings["ragePerSecondPrediction"]
 end
 
 -- Rage #######################################################################################################################################

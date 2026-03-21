@@ -11,7 +11,7 @@ function IWin:GetTalentRank(talentName, debugmsg)
 	for tabIndex = 1, GetNumTalentTabs() do
         for talentIndex = 1, GetNumTalents(tabIndex) do
             local name, _, _, _, rank = GetTalentInfo(tabIndex, talentIndex)
-            if name == talentName then
+            if name and name == talentName then
             	IWin_Spellbook["talent"][talentName] = tonumber(rank)
             	IWin:Debug(talentName.." talent points: "..rank, debugmsg)
         		return tonumber(rank)

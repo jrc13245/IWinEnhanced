@@ -19,13 +19,6 @@ IWin_ThunderClapCostReduction = {
 	[3] = 4,
 }
 
-IWin_RavagerCleaveCostReduction = {
-	[0] = 0,
-	[1] = 1,
-	[2] = 2,
-	[3] = 3,
-}
-
 function IWin:GetExecuteCostReduction()
 	local rank = IWin:GetTalentRank("Improved Execute")
 	return IWin_ExecuteCostReduction[rank]
@@ -39,11 +32,6 @@ end
 function IWin:GetThunderClapCostReduction()
 	local rank = IWin:GetTalentRank("Improved Thunder Clap")
 	return IWin_ThunderClapCostReduction[rank]
-end
-
-function IWin:GetRavagerCleaveCostReduction()
-	local rank = IWin:GetTalentRank("Ravager")
-	return IWin_RavagerCleaveCostReduction[rank]
 end
 
 IWin_BrotherhoodItems = { 47270, 47271, 47272, 47273, 47274, 47275 }
@@ -65,7 +53,7 @@ function IWin:UpdateRageCosts()
 		["Bloodrage"] = - 10 - IWin:GetBloodrageCostReduction(),
 		["Bloodthirst"] = 30,
 		["Charge"] = - 15 - IWin:GetTalentRank("Improved Charge") * 5,
-		["Cleave"] = 20 - IWin:GetRavagerCleaveCostReduction(),
+		["Cleave"] = 20 - IWin:GetTalentRank("Ravager"),
 		["Concussion Blow"] = - 10,
 		["Death Wish"] = 10,
 		["Demoralizing Shout"] = 10,
