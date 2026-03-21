@@ -19,13 +19,6 @@ function IWin:BattleShout()
 	end
 end
 
-function IWin:SetReservedRageBattleShout()
-	local spell = "Battle Shout"
-	if not IWin:IsSpellLearnt(spell, nil, false) then return end
-	if IWin:GetBuffRemaining("player", spell, nil, false) < 10 then
-		IWin:SetReservedRage(spell, "buff", "player")
-	end
-end
 
 function IWin:BattleShoutRefresh()
 	local spell = "Battle Shout"
@@ -200,10 +193,10 @@ function IWin:UseConsumableZone(name, subzone)
 	end
 end
 
-function IWin:Bloodthirst(queueTime)
+function IWin:Bloodthirst(queueTime, skipExecuteCheck)
 	local spell = "Bloodthirst"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
-	if IWin:IsExecutePhase(false) and (not IWin:IsBoss(false) or IWin:GetTimeToDie(false) <= 5) then return end
+	if not skipExecuteCheck and IWin:IsExecutePhase(false) then return end
 	if IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
 			IWin:Cast(spell)
@@ -221,6 +214,7 @@ end
 function IWin:BloodthirstHighAP(queueTime)
 	local spell = "Bloodthirst"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
+	if IWin:IsBoss(false) and IWin:GetTimeToDie(false) <= 5 then return end
 	if IWin:IsBloodthirstOverExecute()
 		and IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
@@ -267,7 +261,7 @@ end
 function IWin:Cleave(range)
 	local spell = "Cleave"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
-	if IWin:IsExecutePhase(false) then return end
+	if IWin:IsExecutePhase(false) and IWin:IsBoss(false) then return end
 	if IWin_CombatVar["swingAttackQueued"] then return end
 	if not IWin:IsRageAvailable(spell) then return end
 	local reserve = IWin_RageCost[spell]
@@ -523,11 +517,11 @@ function IWin:GetPreAttackMinRage(spell)
 	return math.max(minRage, IWin_RageCost[spell])
 end
 
-function IWin:HeroicStrikePreAttack(range)
+function IWin:HeroicStrikePreAttack(range, skipExecuteCheck)
 	local spell = "Heroic Strike"
 	if IWin:IsBoss(false) then return end
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
-	if IWin:IsExecutePhase(false) then return end
+	if not skipExecuteCheck and IWin:IsExecutePhase(false) then return end
 	if IWin_CombatVar["swingAttackQueued"] then return end
 	if (
 			IWin:GetEnemyInRange(range) <= 1
@@ -553,10 +547,10 @@ function IWin:CleavePreAttack(range)
 	end
 end
 
-function IWin:HeroicStrike(range)
+function IWin:HeroicStrike(range, skipExecuteCheck)
 	local spell = "Heroic Strike"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
-	if IWin:IsExecutePhase(false) then return end
+	if not skipExecuteCheck and IWin:IsExecutePhase(false) then return end
 	if IWin_CombatVar["swingAttackQueued"] then return end
 	if not IWin:IsRageAvailable(spell) then return end
 	local reserve = IWin_RageCost[spell]
