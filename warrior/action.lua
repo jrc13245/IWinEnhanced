@@ -278,6 +278,7 @@ function IWin:SetReservedRageCleave(range)
 	end
 end
 
+
 function IWin:ConcussionBlow()
 	local spell = "Concussion Blow"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
@@ -519,6 +520,7 @@ function IWin:CleavePreAttack(range)
 			IWin:Cast(spell, false)
 	end
 end
+
 
 function IWin:HeroicStrike(range)
 	local spell = "Heroic Strike"
