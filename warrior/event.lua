@@ -112,7 +112,5 @@ IWin:SetScript("OnUpdate", function()
 	if not IWin_RLS then return end
 	local gain = IWin_RLS_pendingGain or 0
 	IWin_RLS_pendingGain = 0
-	if gain > 0 then
-		IWin:UpdateRageRLS(gain)
-	end
+	IWin:UpdateRageRLS(gain)
 end)

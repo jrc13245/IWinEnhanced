@@ -753,7 +753,7 @@ function IWin:ResetRageRLS()
 	IWin_RLS = {
 		["startTime"] = GetTime(),
 		["totalRage"] = 0,
-		["lambda"] = 0.85,
+		["lambda"] = 0.8,
 		-- P matrix initialized to large values (high uncertainty)
 		["p11"] = 1000,
 		["p12"] = 0,
@@ -809,7 +809,8 @@ function IWin:GetRageToReserve(spell, trigger, unit, debugmsg)
 	if ragePerSecond > 0 then
 		reservedRageTime = IWin_CombatVar["reservedRage"] / ragePerSecond
 	end
-	local timeToReserveRage = math.max(0, spellTriggerTime - IWin_Settings["rageTimeToReserveBuffer"] - reservedRageTime)
+	local dynamicBuffer = ragePerSecond > 0 and (rageCost / ragePerSecond) or IWin_Settings["rageTimeToReserveBuffer"]
+	local timeToReserveRage = math.max(0, spellTriggerTime - dynamicBuffer - reservedRageTime)
 	if trigger == "partybuff" or IWin:IsSpellLearnt(spell, nil, false) then
 		local result = math.max(0, rageCost - ragePerSecond * timeToReserveRage)
 		IWin:Debug("Reserving rage for "..spell..": "..tostring(result), debugmsg)
@@ -918,10 +919,18 @@ function IWin:IsInRange(spell, distance, unit, debugmsg)
 				return result
         	end
 	else
-		local result = IsSpellInRange(spell, unit) == 1
-		IWin:Debug("In range for "..unit.." with "..spell..": "..tostring(result), debugmsg)
-		IWin_CombatVar["inRange"][cacheKey] = result
-		return result
+		local spellId = GetSpellIdForName and GetSpellIdForName(spell)
+		if spellId and spellId ~= 0 then
+			local result = IsSpellInRange(spellId, unit) == 1
+			IWin:Debug("In range for "..unit.." with "..spell.." (id:"..spellId.."): "..tostring(result), debugmsg)
+			IWin_CombatVar["inRange"][cacheKey] = result
+			return result
+		else
+			local result = CheckInteractDistance(unit, 3) ~= nil
+			IWin:Debug("Fallback range for "..unit..": "..tostring(result), debugmsg)
+			IWin_CombatVar["inRange"][cacheKey] = result
+			return result
+		end
 	end
 end
 

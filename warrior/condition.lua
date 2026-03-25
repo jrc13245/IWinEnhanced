@@ -152,17 +152,3 @@ function IWin:IsChargeTargetAvailable(debugmsg)
 	return result
 end
 
-function IWin:GetPreAttackMinRage(spell)
-	local minRage = IWin_RageCost[spell]
-	if IWin:IsSpellLearnt("Sunder Armor", nil, false) and IWin_Settings["sunder"] ~= "off" then
-		minRage = minRage + IWin_RageCost["Sunder Armor"]
-	end
-	if IWin:IsSpellLearnt("Bloodthirst", nil, false) then
-		minRage = minRage + IWin_RageCost["Bloodthirst"]
-	end
-	if IWin:IsSpellLearnt("Whirlwind", nil, false) then
-		minRage = minRage + IWin_RageCost["Whirlwind"]
-	end
-	minRage = minRage - IWin:GetRagePerSecond(false) * IWin_Settings["GCD"] * 2
-	return math.max(minRage, IWin_RageCost[spell])
-end

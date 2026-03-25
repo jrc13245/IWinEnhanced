@@ -116,39 +116,30 @@ function IWin:BloodrageDPS()
 	IWin:Bloodrage()
 end
 
-function IWin:DeathWishDPS()
+function IWin:DeathWishDPS(ttdMax)
 	local spell = "Death Wish"
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
 	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 	if IWin:IsSpellSkip(spell, nil, true, IWin_Settings["GCD"], true) then return end
 	if not IWin:IsRageAvailable(spell) then return end
-	local ttd = IWin:GetTimeToDie(false)
-	if ttd <= 30 then
-		IWin:Cast(spell)
-	elseif ttd > 180 then
-		IWin:Cast(spell)
-	end
+	if IWin:GetTimeToDie(false) > ttdMax then return end
+	IWin:Cast(spell)
 end
 
-function IWin:BloodFuryDPS()
+function IWin:BloodFuryDPS(ttdMax)
 	local spell = "Blood Fury"
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
 	if UnitRace("player") ~= "Orc" then return end
 	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
 	if IWin:IsSpellSkip(spell, nil, true, IWin_Settings["GCD"], true) then return end
-	local ttd = IWin:GetTimeToDie(false)
-	if ttd <= 15 then
-		IWin:Cast(spell)
-	elseif ttd > 120 then
-		IWin:Cast(spell)
-	end
+	if IWin:GetTimeToDie(false) > ttdMax then return end
+	IWin:Cast(spell)
 end
 
-function IWin:UseTrinketBoss(name, ttdMin, ttdMax, saveThreshold)
+function IWin:UseTrinketBoss(name, ttdMax)
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
 	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
-	local ttd = IWin:GetTimeToDie(false)
-	if not ((ttd >= ttdMin and ttd <= ttdMax) or ttd > saveThreshold) then return end
+	if IWin:GetTimeToDie(false) > ttdMax then return end
 	for _, slot in ipairs({13, 14}) do
 		if IWin:IsItemEquipped(slot, name, false) then
 			local start, duration = GetInventoryItemCooldown("player", slot)
@@ -160,9 +151,10 @@ function IWin:UseTrinketBoss(name, ttdMin, ttdMax, saveThreshold)
 	end
 end
 
-function IWin:UseConsumableBoss(name)
+function IWin:UseConsumableBoss(name, ttdMax)
 	if not IWin:IsBoss(false) or IWin:IsBlacklistCooldown(false) then return end
 	if IWin:GetTime(false) - IWin_RotationVar["combatStart"] <= 10 then return end
+	if IWin:GetTimeToDie(false) > ttdMax then return end
 	for bag = 0, 4 do
 		for slot = 1, GetContainerNumSlots(bag) do
 			local itemName = GetContainerItemLink(bag, slot)
@@ -222,13 +214,6 @@ function IWin:BloodthirstHighAP(queueTime)
 	end
 end
 
-function IWin:SetReservedRageBloodthirstHighAP()
-	local spell = "Bloodthirst"
-	if not IWin:IsSpellLearnt(spell, nil, false) then return end
-	if IWin:IsHighAP(false) then
-		IWin:SetReservedRage(spell, "cooldown")
-	end
-end
 
 function IWin:Charge()
 	local spell = "Charge"
@@ -370,31 +355,6 @@ function IWin:Execute(queueTime, range)
 	end
 end
 
-function IWin:SetReservedRageExecute(range)
-	local spell = "Execute"
-	if not IWin:IsSpellLearnt(spell, nil, false) then return end
-	local lowHealthTarget = (IWin:GetHealthMax("player", false) * 0.3 > IWin:GetHealth("target", false))
-	if (
-			lowHealthTarget
-			or IWin:IsExecutePhase(false)
-		)
-		and IWin:GetEnemyInRange(range, false) <= 1
-		and (
-				IWin:IsPVP("target", false)
-				or IWin:GetHealthPercent("player", false) < 40
-				or IWin:IsElite(false)
-				or (
-						not IWin:Is2HanderEquipped(false)
-						and (
-								IWin:GetGroupSize(false) > 5
-								or IWin:GetPower("player", false) < 40
-							)
-					)
-				or IWin:GetTimeToDie(false) < 4
-			) then 
-				IWin:SetReservedRage(spell, "nocooldown")
-	end
-end
 
 function IWin:Execute2Hander(range)
 	local spell = "Execute"
@@ -492,34 +452,6 @@ function IWin:SetReservedRageHamstringWindfury()
 end
 
 
-function IWin:HeroicStrikePreAttack(range)
-	local spell = "Heroic Strike"
-	if IWin:IsBoss(false) then return end
-	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
-	if IWin_CombatVar["swingAttackQueued"] then return end
-	if (
-			IWin:GetEnemyInRange(range) <= 1
-			or not IWin:IsSpellLearnt("Cleave")
-		)
-		and IWin:GetPower("player", false) >= IWin:GetPreAttackMinRage(spell) then
-			IWin_CombatVar["swingAttackQueued"] = true
-			IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
-			IWin:Cast(spell, false)
-	end
-end
-
-function IWin:CleavePreAttack(range)
-	local spell = "Cleave"
-	if IWin:IsBoss(false) then return end
-	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
-	if IWin_CombatVar["swingAttackQueued"] then return end
-	if IWin:GetEnemyInFront(range) > 1
-		and IWin:GetPower("player", false) >= IWin:GetPreAttackMinRage(spell) then
-			IWin_CombatVar["swingAttackQueued"] = true
-			IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
-			IWin:Cast(spell, false)
-	end
-end
 
 
 function IWin:HeroicStrike(range)
@@ -1148,7 +1080,7 @@ end
 function IWin:SunderArmorDPSRefresh(timeLeft)
 	local spell = "Sunder Armor"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
-	if not (IWin_Settings["sunder"] == "off")
+	if (IWin_Settings["sunder"] == "low" or IWin_Settings["sunder"] == "high")
 		and IWin:IsBuffActive("target", spell)
 		and IWin:GetBuffRemaining("target", spell) < timeLeft
 		and IWin:GetBuffRemaining("target", spell) < IWin:GetTimeToDie()
@@ -1160,17 +1092,6 @@ function IWin:SunderArmorDPSRefresh(timeLeft)
 	end
 end
 
-function IWin:SetReservedRageSunderArmorDPSRefresh(timeLeft)
-	local spell = "Sunder Armor"
-	if not IWin:IsSpellLearnt(spell, nil, false) then return end
-	if not (IWin_Settings["sunder"] == "off")
-		and IWin:IsBuffActive("target", spell, nil, false)
-		and IWin:GetBuffRemaining("target", spell, nil, false) < timeLeft
-		and (not IWin:IsSpellLearnt("Bloodthirst", nil, false) or IWin:GetCooldownRemaining("Bloodthirst", false) >= IWin_Settings["GCD"])
-		and (not IWin:IsSpellLearnt("Whirlwind", nil, false) or IWin:GetCooldownRemaining("Whirlwind", false) >= IWin_Settings["GCD"]) then
-			IWin:SetReservedRage(spell, "nocooldown")
-	end
-end
 
 function IWin:SunderArmorWindfury()
 	local spell = "Sunder Armor"
@@ -1299,7 +1220,7 @@ end
 function IWin:Whirlwind(queueTime, range)
 	local spell = "Whirlwind"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
-	if IWin:IsExecutePhase(false) and IWin:IsBoss(false) and IWin:GetTimeToDie(false) <= 5 then return end
+	if (IWin:IsExecutePhase(false) or IWin:GetTimeToDie(false) <= 3) and (range == nil or IWin:GetEnemyInRange(range) <= 1) then return end
 	if IWin:IsAffectingCombat("player")
 		and (range == nil or IWin:GetEnemyInRange(range) > 1)
 		and IWin:IsReservedRageStance("Berserker Stance")
@@ -1314,7 +1235,7 @@ function IWin:Whirlwind(queueTime, range)
 			if IWin:IsInRange("Rend")
 				and IWin:IsStanceActive("Berserker Stance") then
 					IWin:SetReservedRageStance("Berserker Stance")
-					if IWin:IsRageAvailable(spell) then
+					if IWin:IsRageCostAvailable(spell) then
 						IWin:Cast(spell)
 					end
 			end
@@ -1336,3 +1257,4 @@ function IWin:SetReservedRageWhirlwindNotEnemyInRange(range)
 		IWin:SetReservedRage(spell, "cooldown")
 	end
 end
+
