@@ -66,7 +66,10 @@ IWin:SetScript("OnEvent", function()
 		IWin_RLS_lastRage = UnitMana("player")
 		IWin_RotationVar["combatStart"] = GetTime()
 	elseif event == "PLAYER_REGEN_ENABLED" then
-		IWin_RLS_lastValue = nil
+		if IWin_RLS then
+			IWin_RLS_lastValue = math.max(0, IWin_RLS["w1"])
+		end
+		IWin_RLS = nil
 		IWin_RLS_lastRage = nil
 	elseif event == "CHAT_MSG_COMBAT_CREATURE_VS_SELF_HITS" then
 		if string_find(arg1,"blocked") then
@@ -88,7 +91,7 @@ IWin:SetScript("OnEvent", function()
 		IWin:UpdateRageCosts()
 	elseif event == "UNIT_INVENTORY_CHANGED" and arg1 == "player" and not UnitAffectingCombat("player") then
 		IWin:UpdateRageCosts()
-	elseif event == "UNIT_RAGE_GUID" and arg2 == 1 and IWin_RLS_lastRage then
+	elseif event == "UNIT_RAGE_GUID" and arg2 and IWin_RLS_lastRage then
 		local currentRage = UnitMana("player")
 		local delta = currentRage - IWin_RLS_lastRage
 		if delta > 0 then

@@ -125,6 +125,26 @@ function IWin:GetBuffRemaining(unit, spell, owner, debugmsg)
 		    end
 		end
 	end
+	-- Nampower aura slot scan
+	if unit == "player" and GetPlayerAuraDuration and GetSpellIdForName then
+		local targetSpellId = GetSpellIdForName(spell)
+		if targetSpellId and targetSpellId ~= 0 then
+			for slot = 0, 31 do
+				local spellId, remainingMs = GetPlayerAuraDuration(slot)
+				if spellId and spellId == targetSpellId then
+					local timeLeft = remainingMs / 1000
+					if timeLeft > 0 then
+						IWin:Debug("Nampower buff remaining "..spell.." on "..unit..": "..tostring(timeLeft), debugmsg)
+						IWin_CombatVar["buffRemaining"][cacheKey] = timeLeft
+						return timeLeft
+					else
+						IWin_CombatVar["buffRemaining"][cacheKey] = 9999
+						return 9999
+					end
+				end
+			end
+		end
+	end
 	-- SCRM overflow buff scan
 	if CleveRoids and CleveRoids.OverflowBuffs then
 		for spellId, data in pairs(CleveRoids.OverflowBuffs) do

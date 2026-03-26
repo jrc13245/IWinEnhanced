@@ -454,6 +454,23 @@ end
 
 
 
+function IWin:HeroicStrikeOverflow(range)
+	if IWin_CombatVar["swingAttackQueued"] then return end
+	local spell
+	if IWin:IsSpellLearnt("Cleave", nil, false) and IWin:GetEnemyInRange(range, false) > 1 then
+		spell = "Cleave"
+	else
+		spell = "Heroic Strike"
+	end
+	if IWin:GetPower("player", false) < 55 + IWin_RageCost[spell] then return end
+	if IWin:IsSpellSkip(spell, nil, false, nil, true) then return end
+	if IWin:IsRageCostAvailable(spell) then
+		IWin_CombatVar["swingAttackQueued"] = true
+		IWin_RotationVar["startAttackThrottle"] = IWin:GetTime(false) + 0.2
+		IWin:Cast(spell, false)
+	end
+end
+
 function IWin:HeroicStrike(range)
 	local spell = "Heroic Strike"
 	if IWin:IsSpellSkip(spell, nil, false, queueTime, true) then return end
@@ -1220,7 +1237,7 @@ end
 function IWin:Whirlwind(queueTime, range)
 	local spell = "Whirlwind"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
-	if (IWin:IsExecutePhase(false) or IWin:GetTimeToDie(false) <= 3) and (range == nil or IWin:GetEnemyInRange(range) <= 1) then return end
+	if IWin:IsExecutePhase(false) and (range == nil or IWin:GetEnemyInRange(range) <= 1) then return end
 	if IWin:IsAffectingCombat("player")
 		and (range == nil or IWin:GetEnemyInRange(range) > 1)
 		and IWin:IsReservedRageStance("Berserker Stance")

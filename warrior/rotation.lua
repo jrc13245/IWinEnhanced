@@ -23,6 +23,7 @@ function SlashCmdList.IDPSFOCUSWARRIOR()
 	IWin:SunderArmorDPSRefresh(4)
 	IWin:SunderArmorElite()
 	IWin:BloodthirstHighAP(IWin_Settings["GCD"])
+	IWin:HeroicStrikeOverflow()
 
 	IWin:Execute(IWin_Settings["GCD"], 1)
 
@@ -98,6 +99,7 @@ function SlashCmdList.IDPSWARRIOR()
 	IWin:SetReservedRageWhirlwind("meleeAutoAttack")
 	IWin:SunderArmorElite()
 	IWin:BloodthirstHighAP(IWin_Settings["GCD"])
+	IWin:HeroicStrikeOverflow("meleeAutoAttack")
 
 	IWin:Execute(IWin_Settings["GCD"], "meleeAutoAttack")
 
