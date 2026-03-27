@@ -1013,20 +1013,13 @@ function IWin:SunderArmorFirstStack()
 	end
 end
 
-function IWin:SunderArmorDPS()
+function IWin:SunderArmorOnce()
 	local spell = "Sunder Armor"
 	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
-	if (
-			IWin_Settings["sunder"] == "low"
-			or IWin_Settings["sunder"] == "high"
-			or (
-					IWin_Settings["sunder"] == "once"
-					and not IWin_Target["sundered"]
-				)
-		)
+	if IWin_Settings["sunder"] == "once"
+		and not IWin_Target["sundered"]
 		and not IWin:IsBuffActive("target", "Expose Armor")
 		and not IWin:IsBuffStack("target", spell, 5)
-		and IWin:GetTimeToDie() > 5
 		and IWin:IsRageAvailable(spell)
 		and not IWin_CombatVar["slamQueued"] then
 			IWin_Target["sundered"] = true
@@ -1034,20 +1027,37 @@ function IWin:SunderArmorDPS()
 	end
 end
 
+function IWin:SetReservedRageSunderArmorOnce()
+	local spell = "Sunder Armor"
+	if not IWin:IsSpellLearnt(spell, nil, false) then return end
+	if IWin_Settings["sunder"] == "once"
+		and not IWin_Target["sundered"]
+		and not IWin:IsBuffStack("target", spell, 5, nil, false)
+		and not IWin:IsBuffActive("target", "Expose Armor", nil, false) then
+			IWin:SetReservedRage(spell, "nocooldown")
+	end
+end
+
+function IWin:SunderArmorDPS()
+	local spell = "Sunder Armor"
+	if IWin:IsSpellSkip(spell, nil, true, queueTime, true) then return end
+	if (IWin_Settings["sunder"] == "low" or IWin_Settings["sunder"] == "high")
+		and not IWin:IsBuffActive("target", "Expose Armor")
+		and not IWin:IsBuffStack("target", spell, 5)
+		and (IWin_Settings["sunder"] == "low" or IWin:GetTimeToDie() > 5)
+		and IWin:IsRageAvailable(spell)
+		and not IWin_CombatVar["slamQueued"] then
+			IWin:Cast(spell)
+	end
+end
+
 function IWin:SetReservedRageSunderArmorDPS()
 	local spell = "Sunder Armor"
 	if not IWin:IsSpellLearnt(spell, nil, false) then return end
-	if (
-			IWin_Settings["sunder"] == "low"
-			or IWin_Settings["sunder"] == "high"
-			or (
-					IWin_Settings["sunder"] == "once"
-					and not IWin_Target["sundered"]
-				)
-		)
+	if (IWin_Settings["sunder"] == "low" or IWin_Settings["sunder"] == "high")
 		and not IWin:IsBuffStack("target", spell, 5, nil, false)
 		and not IWin:IsBuffActive("target", "Expose Armor", nil, false)
-		and IWin:GetTimeToDie(false) > 5 then
+		and (IWin_Settings["sunder"] == "low" or IWin:GetTimeToDie(false) > 5) then
 			IWin:SetReservedRage(spell, "nocooldown")
 	end
 end
